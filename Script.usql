@@ -1,0 +1,30 @@
+﻿
+//CREATE ASSEMBLY asm FROM @"C:\Users\uneidel\Documents\github\usql\Examples\DataFormats\Microsoft.Analytics.Samples.Formats\bin\Debug\Microsoft.Analytics.Samples.Formats.dll";
+REFERENCE ASSEMBLY asm;
+DROP DATABASE IF EXISTS lfdatabase;
+CREATE DATABASE lfdatabase;
+USE DATABASE lfdatabase;
+
+// Create table
+
+CREATE TABLE LFOutput (
+            Count  long?,
+            INDEX sl_idx CLUSTERED (Count ASC) 
+                  PARTITIONED BY HASH (Count)
+
+  );
+@books =
+    EXTRACT author string,
+            title string,
+            price string
+    FROM @"c:\Users\uneidel\Desktop\SampleXml.xml"
+    USING new Microsoft.Analytics.Samples.Formats.Xml.XmlDomExtractor("book",
+                              columnPaths:new SQL.MAP<string, string> { {"author", "author"},{"title", "title" },{"price", "price"} });
+        
+
+@count = SELECT COUNT(DISTINCT title) AS count FROM @books; 
+OUTPUT @count TO @"c:/users/uneidel/Desktop/wordCount.txt" USING Outputters.Csv();
+
+INSERT INTO LFOutput
+SELECT COUNT(DISTINCT title) AS count
+FROM @books;
